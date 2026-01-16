@@ -43,13 +43,15 @@ swift package benchmark --filter "Levenshtein Distance - Short Strings"
 
 Save a baseline:
 ```bash
-swift package benchmark baseline write main
+swift package benchmark baseline write <baseline-name>
 ```
 
 Compare against a baseline:
 ```bash
-swift package benchmark baseline compare main
+swift package benchmark baseline compare <baseline-name>
 ```
+
+For the baseline name you may use the latest commit id or another meaningful name if there are uncommited changes.
 
 ### Additional Options
 
