@@ -40,35 +40,39 @@ public enum SimilarityAlgorithm: Equatable, CaseIterable {
 /// Computes the Levenshtein edit distance between two strings
 /// Returns the minimum number of single-character edits needed
 public func levenshteinDistance(_ s1: String, _ s2: String) -> Int {
-    let s1Array = Array(s1)
-    let s2Array = Array(s2)
-    let m = s1Array.count
-    let n = s2Array.count
+    // Ensure s1 is the shorter string to minimize memory usage
+    let (shorter, longer) = s1.count <= s2.count ? (s1, s2) : (s2, s1)
+    let shorterArray = Array(shorter)
+    let longerArray = Array(longer)
+    let m = shorterArray.count
+    let n = longerArray.count
 
     // Handle empty strings
     if m == 0 { return n }
-    if n == 0 { return m }
 
-    // Create distance matrix
-    var matrix = [[Int]](repeating: [Int](repeating: 0, count: n + 1), count: m + 1)
+    // Use single row optimization - O(min(m,n)) space instead of O(m*n)
+    var previousRow = [Int](repeating: 0, count: m + 1)
+    for j in 0...m { previousRow[j] = j }
 
-    // Initialize first row and column
-    for i in 0...m { matrix[i][0] = i }
-    for j in 0...n { matrix[0][j] = j }
+    // Process each character of the longer string
+    for i in 1...n {
+        var diagonal = previousRow[0]
+        previousRow[0] = i
 
-    // Fill in the matrix
-    for i in 1...m {
-        for j in 1...n {
-            let cost = s1Array[i - 1] == s2Array[j - 1] ? 0 : 1
-            matrix[i][j] = min(
-                matrix[i - 1][j] + 1,  // deletion
-                matrix[i][j - 1] + 1,  // insertion
-                matrix[i - 1][j - 1] + cost  // substitution
+        for j in 1...m {
+            let oldDiagonal = diagonal
+            diagonal = previousRow[j]
+
+            let cost = shorterArray[j - 1] == longerArray[i - 1] ? 0 : 1
+            previousRow[j] = min(
+                diagonal + 1,           // deletion
+                previousRow[j - 1] + 1, // insertion
+                oldDiagonal + cost      // substitution
             )
         }
     }
 
-    return matrix[m][n]
+    return previousRow[m]
 }
 
 /// Normalized Levenshtein similarity (0.0 to 1.0)
