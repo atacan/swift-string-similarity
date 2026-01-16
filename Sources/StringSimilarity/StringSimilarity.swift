@@ -20,6 +20,17 @@ public enum SimilarityAlgorithm: Equatable, CaseIterable {
 
     /// Combination of multiple algorithms (takes the best score)
     case combined
+
+    /// Hamming distance (only for equal-length strings)
+    /// Counts positions where characters differ
+    case hamming
+
+    /// MostFreqK distance
+    /// Compares strings based on their K most frequent characters
+    case mostFreqK
+
+    /// Normalized MostFreqK distance (0.0 to 1.0)
+    case normalizedMostFreqK
 }
 
 // MARK: - String Similarity Algorithms
@@ -226,6 +237,137 @@ public func combinedSimilarity(_ s1: String, _ s2: String) -> Double {
     return scores.max() ?? 0.0
 }
 
+// MARK: Hamming Distance
+
+/// Computes the Hamming distance between two strings
+/// Returns nil if strings have different lengths
+public func hammingDistance(_ s1: String, _ s2: String) -> Int? {
+    let s1Array = Array(s1)
+    let s2Array = Array(s2)
+
+    guard s1Array.count == s2Array.count else { return nil }
+
+    var distance = 0
+    for i in 0..<s1Array.count {
+        if s1Array[i] != s2Array[i] {
+            distance += 1
+        }
+    }
+    return distance
+}
+
+/// Normalized Hamming similarity (0.0 to 1.0)
+/// Returns nil if strings have different lengths
+public func hammingSimilarity(_ s1: String, _ s2: String) -> Double? {
+    guard let distance = hammingDistance(s1, s2) else { return nil }
+    let length = s1.count
+    if length == 0 { return 1.0 }
+    return 1.0 - (Double(distance) / Double(length))
+}
+
+// MARK: MostFreqK Distance
+
+/// Returns a dictionary of character frequencies for a string
+private func characterFrequencies(_ s: String) -> [Character: Int] {
+    var freq: [Character: Int] = [:]
+    for char in s {
+        freq[char, default: 0] += 1
+    }
+    return freq
+}
+
+/// Returns the K most frequent characters with their frequencies
+private func mostFrequentK(_ s: String, k: Int) -> [(Character, Int)] {
+    let freq = characterFrequencies(s)
+    return freq.sorted { $0.value > $1.value || ($0.value == $1.value && $0.key < $1.key) }
+        .prefix(k)
+        .map { ($0.key, $0.value) }
+}
+
+/// Computes the MostFreqK distance between two strings
+/// Based on comparing the K most frequent characters in each string
+public func mostFreqKDistance(_ s1: String, _ s2: String, k: Int = 2) -> Int {
+    if s1.isEmpty && s2.isEmpty { return 0 }
+    if s1.isEmpty || s2.isEmpty { return max(s1.count, s2.count) * k }
+
+    let freq1 = mostFrequentK(s1, k: k)
+    let freq2 = mostFrequentK(s2, k: k)
+
+    var distance = 0
+
+    // For each character in freq1, find it in freq2 and compute difference
+    for (char1, count1) in freq1 {
+        if let (_, count2) = freq2.first(where: { $0.0 == char1 }) {
+            distance += abs(count1 - count2)
+        } else {
+            distance += count1
+        }
+    }
+
+    // For characters in freq2 not in freq1
+    for (char2, count2) in freq2 {
+        if !freq1.contains(where: { $0.0 == char2 }) {
+            distance += count2
+        }
+    }
+
+    return distance
+}
+
+/// MostFreqK similarity (higher is more similar)
+public func mostFreqKSimilarity(_ s1: String, _ s2: String, k: Int = 2) -> Double {
+    let distance = mostFreqKDistance(s1, s2, k: k)
+    let maxPossible = max(s1.count, s2.count) * k
+    if maxPossible == 0 { return 1.0 }
+    return 1.0 - (Double(distance) / Double(maxPossible))
+}
+
+// MARK: Normalized MostFreqK Distance
+
+/// Computes the Normalized MostFreqK similarity
+/// Normalizes character frequencies before comparison
+public func normalizedMostFreqKSimilarity(_ s1: String, _ s2: String, k: Int = 2) -> Double {
+    if s1.isEmpty && s2.isEmpty { return 1.0 }
+    if s1.isEmpty || s2.isEmpty { return 0.0 }
+
+    let freq1 = mostFrequentK(s1, k: k)
+    let freq2 = mostFrequentK(s2, k: k)
+
+    let total1 = Double(freq1.reduce(0) { $0 + $1.1 })
+    let total2 = Double(freq2.reduce(0) { $0 + $1.1 })
+
+    // Normalize frequencies
+    var normFreq1: [Character: Double] = [:]
+    var normFreq2: [Character: Double] = [:]
+
+    for (char, count) in freq1 {
+        normFreq1[char] = Double(count) / total1
+    }
+    for (char, count) in freq2 {
+        normFreq2[char] = Double(count) / total2
+    }
+
+    // Compute similarity using cosine-like measure
+    var dotProduct = 0.0
+    var magnitude1 = 0.0
+    var magnitude2 = 0.0
+
+    let allChars = Set(normFreq1.keys).union(Set(normFreq2.keys))
+
+    for char in allChars {
+        let v1 = normFreq1[char] ?? 0.0
+        let v2 = normFreq2[char] ?? 0.0
+        dotProduct += v1 * v2
+        magnitude1 += v1 * v1
+        magnitude2 += v2 * v2
+    }
+
+    let magnitude = magnitude1.squareRoot() * magnitude2.squareRoot()
+    if magnitude == 0 { return 0.0 }
+
+    return dotProduct / magnitude
+}
+
 /// Compute similarity using the specified algorithm
 public func similarity(
     _ s1: String,
@@ -243,5 +385,11 @@ public func similarity(
         return max(tokenSimilarity(s1, s2), tokenSortSimilarity(s1, s2))
     case .combined:
         return combinedSimilarity(s1, s2)
+    case .hamming:
+        return hammingSimilarity(s1, s2) ?? 0.0
+    case .mostFreqK:
+        return mostFreqKSimilarity(s1, s2)
+    case .normalizedMostFreqK:
+        return normalizedMostFreqKSimilarity(s1, s2)
     }
 }
