@@ -324,8 +324,8 @@ public func mostFreqKSimilarity(_ s1: String, _ s2: String, k: Int = 2) -> Doubl
 
 // MARK: Normalized MostFreqK Distance
 
-/// Computes the Normalized MostFreqK similarity
-/// Normalizes character frequencies before comparison
+/// Computes the Normalized MostFreqK similarity using cosine similarity
+/// on the K most frequent character frequency vectors
 public func normalizedMostFreqKSimilarity(_ s1: String, _ s2: String, k: Int = 2) -> Double {
     if s1.isEmpty && s2.isEmpty { return 1.0 }
     if s1.isEmpty || s2.isEmpty { return 0.0 }
@@ -347,7 +347,7 @@ public func normalizedMostFreqKSimilarity(_ s1: String, _ s2: String, k: Int = 2
         normFreq2[char] = Double(count) / total2
     }
 
-    // Compute similarity using cosine-like measure
+    // Compute cosine similarity
     var dotProduct = 0.0
     var magnitude1 = 0.0
     var magnitude2 = 0.0
