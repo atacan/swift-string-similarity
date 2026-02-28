@@ -1,5 +1,8 @@
 # StringSimilarity
 
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fatacan%2Fswift-string-similarity%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/atacan/swift-string-similarity)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fatacan%2Fswift-string-similarity%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/atacan/swift-string-similarity)
+
 A lightweight Swift package for computing string similarity and distance metrics. Perfect for fuzzy string matching, typo detection, search suggestions, and text comparison in Swift applications.
 
 **No Foundation dependency** - works everywhere Swift runs.
